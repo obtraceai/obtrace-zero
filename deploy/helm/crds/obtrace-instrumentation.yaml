@@ -1,0 +1,137 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: obtraceinstrumentations.obtrace.io
+spec:
+  group: obtrace.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                apiKey:
+                  type: string
+                apiKeySecretRef:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    key:
+                      type: string
+                ingestEndpoint:
+                  type: string
+                strategy:
+                  type: string
+                  enum: ["auto", "sdk", "ebpf", "hybrid", "disable"]
+                  default: "auto"
+                namespaces:
+                  type: array
+                  items:
+                    type: string
+                excludeNames:
+                  type: array
+                  items:
+                    type: string
+                languageHints:
+                  type: object
+                  additionalProperties:
+                    type: string
+                    enum: ["nodejs", "python", "java", "go", "dotnet", "php", "ruby", "rust", "unknown"]
+                sampling:
+                  type: object
+                  properties:
+                    traceRatio:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    rulesPerService:
+                      type: object
+                      additionalProperties:
+                        type: number
+                propagation:
+                  type: object
+                  properties:
+                    injectHeaders:
+                      type: boolean
+                    extractHeaders:
+                      type: boolean
+                resourceAttributes:
+                  type: object
+                  additionalProperties:
+                    type: string
+                selector:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                instrumentedPods:
+                  type: integer
+                discoveredWorkloads:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                      kind:
+                        type: string
+                      language:
+                        type: string
+                      framework:
+                        type: string
+                      strategy:
+                        type: string
+                      instrumented:
+                        type: boolean
+                      lastDetectedAt:
+                        type: string
+                        format: date-time
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Strategy
+          type: string
+          jsonPath: .spec.strategy
+        - name: Instrumented
+          type: integer
+          jsonPath: .status.instrumentedPods
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+  scope: Cluster
+  names:
+    plural: obtraceinstrumentations
+    singular: obtraceinstrumentation
+    kind: ObtraceInstrumentation
+    shortNames:
+      - oti
+      - obtrace

@@ -1,0 +1,8 @@
+- [ ] Version and changelog updated
+- [ ] README quickstart validated
+- [ ] Default ingest URL in docs/examples is `https://ingest.obtrace.ai`
+- [ ] CI is green on `main`
+- [ ] Docker images built and pushed
+- [ ] Helm chart version bumped
+- [ ] Compatibility notes documented (if applicable)
+- [ ] Tag created and pushed (e.g. `v0.1.0`)

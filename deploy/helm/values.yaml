@@ -1,0 +1,77 @@
+operator:
+  image:
+    repository: ghcr.io/obtrace/obtrace-zero-operator
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+agent:
+  image:
+    repository: ghcr.io/obtrace/obtrace-zero-agent
+    tag: "0.1.0"
+
+ebpf:
+  image:
+    repository: ghcr.io/obtrace/obtrace-zero-ebpf
+    tag: "0.1.0"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+config:
+  apiKey: ""
+  apiKeySecretRef:
+    name: ""
+    key: ""
+  ingestEndpoint: "https://ingest-edge.obtrace.svc.cluster.local:8080"
+  strategy: "auto"
+  namespaces: []
+  excludeNamespaces:
+    - kube-system
+    - kube-public
+    - kube-node-lease
+    - cert-manager
+    - linkerd
+    - argocd
+    - obtrace-system
+  sampling:
+    traceRatio: 1.0
+  propagation:
+    injectHeaders: true
+    extractHeaders: true
+
+webhook:
+  port: 9443
+  certManager:
+    enabled: true
+    issuerRef:
+      name: selfsigned-issuer
+      kind: Issuer
+
+metrics:
+  enabled: true
+  port: 8080
+
+health:
+  port: 8081
+
+discovery:
+  intervalSeconds: 60
+
+serviceAccount:
+  create: true
+  name: obtrace-zero
+
+rbac:
+  create: true

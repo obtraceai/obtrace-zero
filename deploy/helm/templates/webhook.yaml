@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: obtrace-zero-webhook
+  namespace: obtrace-system
+spec:
+  selector:
+    app.kubernetes.io/name: obtrace-zero
+    app.kubernetes.io/component: operator
+  ports:
+    - port: 443
+      targetPort: {{ .Values.webhook.port }}
+      protocol: TCP
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: obtrace-zero
+  {{- if .Values.webhook.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: obtrace-system/obtrace-zero-webhook
+  {{- end }}
+webhooks:
+  - name: pod-mutator.obtrace.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig:
+      service:
+        name: obtrace-zero-webhook
+        namespace: obtrace-system
+        path: /mutate-pods
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    failurePolicy: Ignore
+    reinvocationPolicy: IfNeeded
+    timeoutSeconds: 10
+    namespaceSelector:
+      matchExpressions:
+        - key: obtrace.io/exclude
+          operator: NotIn
+          values: ["true"]
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            {{- range .Values.config.excludeNamespaces }}
+            - {{ . | quote }}
+            {{- end }}
+{{- if .Values.webhook.certManager.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: obtrace-zero-webhook
+  namespace: obtrace-system
+spec:
+  secretName: obtrace-zero-webhook-certs
+  dnsNames:
+    - obtrace-zero-webhook.obtrace-system.svc
+    - obtrace-zero-webhook.obtrace-system.svc.cluster.local
+  issuerRef:
+    name: {{ .Values.webhook.certManager.issuerRef.name }}
+    kind: {{ .Values.webhook.certManager.issuerRef.kind }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: obtrace-system
+spec:
+  selfSigned: {}
+{{- end }}

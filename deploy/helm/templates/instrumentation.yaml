@@ -1,0 +1,28 @@
+{{- if or .Values.config.apiKey .Values.config.apiKeySecretRef.name }}
+apiVersion: obtrace.io/v1alpha1
+kind: ObtraceInstrumentation
+metadata:
+  name: obtrace-default
+spec:
+  {{- if .Values.config.apiKey }}
+  apiKey: {{ .Values.config.apiKey | quote }}
+  {{- end }}
+  {{- if .Values.config.apiKeySecretRef.name }}
+  apiKeySecretRef:
+    name: {{ .Values.config.apiKeySecretRef.name }}
+    key: {{ .Values.config.apiKeySecretRef.key | default "api-key" }}
+  {{- end }}
+  ingestEndpoint: {{ .Values.config.ingestEndpoint | quote }}
+  strategy: {{ .Values.config.strategy | quote }}
+  {{- if .Values.config.namespaces }}
+  namespaces:
+    {{- range .Values.config.namespaces }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  sampling:
+    traceRatio: {{ .Values.config.sampling.traceRatio }}
+  propagation:
+    injectHeaders: {{ .Values.config.propagation.injectHeaders }}
+    extractHeaders: {{ .Values.config.propagation.extractHeaders }}
+{{- end }}

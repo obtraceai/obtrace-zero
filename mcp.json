@@ -1,0 +1,29 @@
+{
+  "mcp_version": "1.0",
+  "name": "obtrace-zero",
+  "description": "Zero-touch auto-instrumentation operator for Kubernetes. Detects language, injects SDK or eBPF sidecar, sends OTLP to ingest-edge.",
+  "resources": [
+    {
+      "type": "file",
+      "path": "README.md",
+      "description": "Overview, install, quickstart, supported languages, strategies, CLI commands"
+    },
+    {
+      "type": "file",
+      "path": "deploy/helm/values.yaml",
+      "description": "Helm chart configuration reference"
+    },
+    {
+      "type": "file",
+      "path": "deploy/helm/crds/obtrace-instrumentation.yaml",
+      "description": "CRD schema for ObtraceInstrumentation"
+    }
+  ],
+  "conventions": {
+    "sdk_philosophy": "Language agents are single-file loaders with zero external dependencies. All policy logic lives server-side.",
+    "detection": "Language detected from container image, command, args, labels. Override via obtrace.io/language label or CRD languageHints.",
+    "strategies": "auto (default), sdk, ebpf, hybrid, disable. Auto picks SDK for interpreted, eBPF for compiled.",
+    "telemetry_format": "OTLP JSON direct to ingest-edge. No intermediate collector.",
+    "injection_mechanisms": "NODE_OPTIONS --require, PYTHONSTARTUP, JAVA_TOOL_OPTIONS -javaagent, DOTNET_STARTUP_HOOKS, PHP auto_prepend_file, RUBYOPT -r"
+  }
+}

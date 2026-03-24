@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obtrace-system
+  labels:
+    obtrace.io/exclude: "true"
+    app.kubernetes.io/managed-by: obtrace-zero

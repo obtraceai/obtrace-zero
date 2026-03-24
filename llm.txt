@@ -1,0 +1,32 @@
+obtrace-zero is a Kubernetes operator for zero-touch auto-instrumentation.
+
+It intercepts Pod creation via MutatingWebhook, detects the language/framework
+from the container image and command, and injects instrumentation automatically.
+
+For interpreted languages (Node.js, Python, Java, .NET, PHP, Ruby), it uses
+an init container to copy a single-file loader and sets runtime-native env vars
+(NODE_OPTIONS, PYTHONSTARTUP, JAVA_TOOL_OPTIONS, DOTNET_STARTUP_HOOKS, etc.).
+
+For compiled languages (Go, Rust) or unknown binaries, it injects an eBPF
+sidecar that captures HTTP/gRPC/DNS/TLS traffic at the kernel level.
+
+Agents send OTLP JSON directly to ingest-edge — no collector needed.
+
+Entry points:
+  cmd/operator/main.go  — Kubernetes operator with webhook server
+  cmd/cli/main.go       — CLI for install, discover, instrument, status
+
+Key packages:
+  pkg/detector/   — Language and framework detection from container specs
+  pkg/injector/   — SDK and eBPF injection into Pod specs
+  pkg/webhook/    — MutatingWebhook handler
+  pkg/discovery/  — Cluster workload discovery
+  pkg/crd/        — ObtraceInstrumentation CRD types
+
+Agent loaders:
+  agent/node/     — obtrace-loader.js (NODE_OPTIONS --require)
+  agent/python/   — obtrace_loader.py (PYTHONSTARTUP)
+  agent/java/     — ObtraceAgent.java (JAVA_TOOL_OPTIONS -javaagent)
+  agent/dotnet/   — ObtraceAutoInstrument.cs (DOTNET_STARTUP_HOOKS)
+  agent/php/      — obtrace_loader.php (auto_prepend_file)
+  agent/ruby/     — obtrace_loader.rb (RUBYOPT -r)

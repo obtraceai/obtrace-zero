@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build binaries
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/obtrace-zero-linux-amd64 ./cmd/cli
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/obtrace-zero-linux-arm64 ./cmd/cli
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/obtrace-zero-darwin-amd64 ./cmd/cli
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/obtrace-zero-darwin-arm64 ./cmd/cli
+
+      - name: Build and push Docker images
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          VERSION=${GITHUB_REF_NAME#v}
+          docker build -t ghcr.io/obtraceai/obtrace-zero-operator:${VERSION} -f Dockerfile .
+          docker build -t ghcr.io/obtraceai/obtrace-zero-agent:${VERSION} -f Dockerfile.agent .
+          docker build -t ghcr.io/obtraceai/obtrace-zero-cli:${VERSION} -f Dockerfile.cli .
+          docker push ghcr.io/obtraceai/obtrace-zero-operator:${VERSION}
+          docker push ghcr.io/obtraceai/obtrace-zero-agent:${VERSION}
+          docker push ghcr.io/obtraceai/obtrace-zero-cli:${VERSION}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/obtrace-zero-linux-amd64 \
+            dist/obtrace-zero-linux-arm64 \
+            dist/obtrace-zero-darwin-amd64 \
+            dist/obtrace-zero-darwin-arm64 \
+            --generate-notes

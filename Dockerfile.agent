@@ -1,0 +1,14 @@
+FROM alpine:3.21 AS base
+
+RUN mkdir -p /agent/nodejs /agent/python /agent/java /agent/dotnet /agent/php /agent/ruby
+
+COPY agent/node/obtrace-loader.js /agent/nodejs/obtrace-loader.js
+COPY agent/python/obtrace_loader.py /agent/python/obtrace_loader.py
+COPY agent/java/ObtraceAgent.java /agent/java/
+COPY agent/dotnet/ObtraceAutoInstrument.cs /agent/dotnet/
+COPY agent/php/obtrace_loader.php /agent/php/obtrace_loader.php
+COPY agent/php/obtrace.ini /agent/php/php.d/obtrace.ini
+COPY agent/ruby/obtrace_loader.rb /agent/ruby/obtrace_loader.rb
+
+FROM scratch
+COPY --from=base /agent /agent

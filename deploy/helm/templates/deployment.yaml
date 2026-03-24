@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obtrace-zero-operator
+  namespace: obtrace-system
+  labels:
+    app.kubernetes.io/name: obtrace-zero
+    app.kubernetes.io/component: operator
+spec:
+  replicas: {{ .Values.operator.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: obtrace-zero
+      app.kubernetes.io/component: operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: obtrace-zero
+        app.kubernetes.io/component: operator
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: operator
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.webhook.port }}
+              name: webhook
+              protocol: TCP
+            - containerPort: {{ .Values.metrics.port }}
+              name: metrics
+              protocol: TCP
+            - containerPort: {{ .Values.health.port }}
+              name: health
+              protocol: TCP
+          env:
+            - name: WEBHOOK_PORT
+              value: "{{ .Values.webhook.port }}"
+            - name: METRICS_ADDR
+              value: ":{{ .Values.metrics.port }}"
+            - name: HEALTH_ADDR
+              value: ":{{ .Values.health.port }}"
+            - name: DISCOVERY_INTERVAL
+              value: "{{ .Values.discovery.intervalSeconds }}"
+            - name: AGENT_IMAGE
+              value: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+            - name: EBPF_IMAGE
+              value: "{{ .Values.ebpf.image.repository }}:{{ .Values.ebpf.image.tag }}"
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.operator.resources | nindent 12 }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: obtrace-zero-webhook-certs

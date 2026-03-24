@@ -1,0 +1,99 @@
+probe:
+  type: kprobe
+  targets:
+    - name: http_request_capture
+      functions:
+        - tcp_sendmsg
+        - tcp_recvmsg
+      filters:
+        - port: [80, 443, 8080, 8443, 3000, 4317, 5000, 8000, 8081, 8082, 9090]
+
+    - name: dns_resolution
+      functions:
+        - udp_sendmsg
+      filters:
+        - port: [53]
+
+    - name: tls_capture
+      functions:
+        - security_socket_sendmsg
+        - security_socket_recvmsg
+      uprobe_targets:
+        - library: libssl.so
+          functions: [SSL_read, SSL_write]
+        - library: libgnutls.so
+          functions: [gnutls_record_recv, gnutls_record_send]
+
+processing:
+  protocol_detection:
+    enabled: true
+    protocols: [http, http2, grpc, redis, postgres, mysql, kafka]
+
+  http_parsing:
+    capture_headers: true
+    max_header_size: 4096
+    capture_body: false
+    sensitive_headers:
+      - authorization
+      - cookie
+      - x-api-key
+
+  trace_context:
+    extract_traceparent: true
+    extract_b3: true
+    generate_if_missing: true
+
+  aggregation:
+    window_seconds: 5
+    group_by: [method, path, status_code, peer_ip]
+
+output:
+  format: otlp_json
+  endpoint: "${OBTRACE_INGEST_URL}"
+  headers:
+    X-API-Key: "${OBTRACE_API_KEY}"
+    X-Obtrace-Source: "zero-agent-ebpf"
+  batch_size: 100
+  flush_interval_ms: 2000
+
+  resource_attributes:
+    service.name: "${OBTRACE_SERVICE_NAME}"
+    deployment.environment: "${OBTRACE_ENVIRONMENT}"
+    k8s.pod.name: "${OBTRACE_POD_NAME}"
+    k8s.namespace.name: "${OBTRACE_POD_NAMESPACE}"
+    k8s.node.name: "${OBTRACE_NODE_NAME}"
+    telemetry.sdk.name: "obtrace-zero"
+    telemetry.sdk.language: "ebpf"
+
+  metrics:
+    - name: http.server.request.duration
+      type: histogram
+      unit: ms
+      buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+
+    - name: http.server.active_requests
+      type: gauge
+      unit: "1"
+
+    - name: http.server.request.body_size
+      type: histogram
+      unit: By
+      buckets: [100, 1000, 10000, 100000, 1000000]
+
+    - name: tcp.connections.active
+      type: gauge
+      unit: "1"
+
+    - name: dns.resolution.duration
+      type: histogram
+      unit: ms
+      buckets: [1, 5, 10, 50, 100, 500]
+
+security:
+  capabilities_required:
+    - BPF
+    - NET_ADMIN
+    - SYS_PTRACE
+    - PERFMON
+  drop_privileges_after_attach: true
+  seccomp_profile: runtime/default
