@@ -173,7 +173,8 @@ func cmdUninstall() {
 }
 
 func cmdStatus() {
-	fmt.Println("obtrace-zero status\n")
+	fmt.Println("obtrace-zero status")
+	fmt.Println()
 
 	out, err := exec.Command("kubectl", "get", "pods", "-n", "obtrace-system", "-o", "wide").Output()
 	if err != nil {
