@@ -1,0 +1,49 @@
+name: Build & Push Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "Dockerfile"
+      - "Dockerfile.*"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+concurrency:
+  group: build-zero
+  cancel-in-progress: true
+
+env:
+  REGISTRY: obtrace-registry.obtrace-infra.svc.cluster.local:5000
+
+jobs:
+  build-deploy:
+    runs-on: obtrace-runners
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push images
+        env:
+          DOCKER_HOST: tcp://localhost:2376
+          DOCKER_TLS_VERIFY: "1"
+          DOCKER_CERT_PATH: /certs/client
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          docker build -t ${REGISTRY}/zero-operator:latest -t ${REGISTRY}/zero-operator:${SHORT_SHA} -f Dockerfile .
+          docker push ${REGISTRY}/zero-operator:latest
+          docker push ${REGISTRY}/zero-operator:${SHORT_SHA}
+          docker build -t ${REGISTRY}/zero-agent:latest -t ${REGISTRY}/zero-agent:${SHORT_SHA} -f Dockerfile.agent .
+          docker push ${REGISTRY}/zero-agent:latest
+          docker push ${REGISTRY}/zero-agent:${SHORT_SHA}
+          docker build -t ${REGISTRY}/zero-cli:latest -t ${REGISTRY}/zero-cli:${SHORT_SHA} -f Dockerfile.cli .
+          docker push ${REGISTRY}/zero-cli:latest
+          docker push ${REGISTRY}/zero-cli:${SHORT_SHA}
+
+      - name: Restart deployments
+        run: |
+          kubectl rollout restart deployment/obtrace-zero-operator -n obtrace 2>/dev/null || true
+          kubectl rollout restart deployment/obtrace-zero-agent -n obtrace 2>/dev/null || true

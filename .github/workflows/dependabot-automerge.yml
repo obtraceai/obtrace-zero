@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   auto-merge:
-    runs-on: ubuntu-latest
+    runs-on: obtrace-runners
     if: github.actor == 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
