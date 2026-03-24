@@ -2,6 +2,7 @@ package crd
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -91,4 +92,52 @@ type ObtraceInstrumentationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ObtraceInstrumentation `json:"items"`
+}
+
+func (in *ObtraceInstrumentation) DeepCopyObject() runtime.Object {
+	if in == nil {
+		return nil
+	}
+	out := new(ObtraceInstrumentation)
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.TypeMeta = out.TypeMeta
+	out.Spec = in.Spec
+	out.Status = in.Status
+	if in.Spec.Namespaces != nil {
+		out.Spec.Namespaces = make([]string, len(in.Spec.Namespaces))
+		copy(out.Spec.Namespaces, in.Spec.Namespaces)
+	}
+	if in.Spec.ExcludeNames != nil {
+		out.Spec.ExcludeNames = make([]string, len(in.Spec.ExcludeNames))
+		copy(out.Spec.ExcludeNames, in.Spec.ExcludeNames)
+	}
+	if in.Spec.LanguageHints != nil {
+		out.Spec.LanguageHints = make(map[string]Language, len(in.Spec.LanguageHints))
+		for k, v := range in.Spec.LanguageHints {
+			out.Spec.LanguageHints[k] = v
+		}
+	}
+	if in.Spec.ResourceAttrs != nil {
+		out.Spec.ResourceAttrs = make(map[string]string, len(in.Spec.ResourceAttrs))
+		for k, v := range in.Spec.ResourceAttrs {
+			out.Spec.ResourceAttrs[k] = v
+		}
+	}
+	return out
+}
+
+func (in *ObtraceInstrumentationList) DeepCopyObject() runtime.Object {
+	if in == nil {
+		return nil
+	}
+	out := new(ObtraceInstrumentationList)
+	out.TypeMeta = in.TypeMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	if in.Items != nil {
+		out.Items = make([]ObtraceInstrumentation, len(in.Items))
+		for i := range in.Items {
+			out.Items[i] = *in.Items[i].DeepCopyObject().(*ObtraceInstrumentation)
+		}
+	}
+	return out
 }
