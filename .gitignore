@@ -9,6 +9,8 @@ out/
 coverage/
 *.tsbuildinfo
 bin/
+cli
+operator
 
 # language artifacts
 __pycache__/
